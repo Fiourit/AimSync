@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AimSync</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            font-family: 'Arial', sans-serif;
+        }
+
+        /* Top header bar for logos with box-shadow restored */
+        #header-bar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            box-sizing: border-box;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(176, 176, 176, 0.3); /* Restored box-shadow */
+            margin-bottom: 30px; /* Maintain some distance, not too much */
+        }
+
+        #logo-left, #logo-right {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 10px; /* Square margins for logos */
+            width: 200px;
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .logo-img {
+            width: 180px;
+            height: 180px;
+            object-fit: contain; /* Maintains aspect ratio within square */
+        }
+
+        #tagline {
+            margin-top: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #4a4a4a;
+        }
+
+        #game-container {
+            position: relative;
+            width: 800px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #game-window {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            border: 2px solid #b0b0b0;
+            border-radius: 8px;
+            background-color: #e0e0e0;
+            box-shadow: 0 0 10px rgba(176, 176, 176, 0.3);
+            overflow: hidden;
+            margin-bottom: 50px;
+        }
+
+        #circle-chain {
+            position: absolute;
+        }
+
+        .circle {
+            position: absolute;
+            border: 2px solid #4a4a4a;
+            border-radius: 50%;
+            background-color: transparent;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .circle.active {
+            border-color: #808080;
+            background-color: #808080;
+            transform: scale(1.1);
+        }
+
+        .circle.broken {
+            border-color: #1a1a1a;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><path d="M50 50 L50 0 M50 50 L50 100 M50 50 L0 50 M50 50 L100 50 M50 50 L85 15 M50 50 L85 85 M50 50 L15 85 M50 50 L15 15 M50 50 L70 20 M50 50 L20 70" stroke="%231a1a1a" stroke-width="2" fill="none"/></svg>');
+            background-size: cover;
+            background-position: center;
+            animation: shatter 0.5s ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes shatter {
+            0% { transform: scale(1.0); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+            100% { transform: scale(1.0); opacity: 1; }
+        }
+
+        #feedback {
+            position: absolute;
+            bottom: -60px;
+            width: 100%;
+            text-align: center;
+            font-size: 24px;
+            color: #4a4a4a;
+        }
+
+        #level-display {
+            position: absolute;
+            top: -40px;
+            width: 100%;
+            text-align: center;
+            font-size: 28px;
+            color: #808080;
+        }
+        
+        #timer-display {
+            position: absolute;
+            top: -40px;
+            right: 20px;
+            font-size: 24px;
+            color: #808080;
+        }
+
+        /* Improved instructions styling */
+        #instructions {
+            width: 800px;
+            margin: 50px 0 80px 0;
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(176, 176, 176, 0.5);
+            text-align: left;
+            color: #4a4a4a;
+        }
+
+        #instructions h2 {
+            color: #555;
+            margin-top: 0;
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+
+        #instructions p {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        #instructions .section {
+            margin-bottom: 25px;
+        }
+
+        #instructions h3 {
+            color: #808080;
+            margin: 15px 0 10px 0;
+            font-size: 20px;
+        }
+
+        #instructions ul {
+            padding-left: 25px;
+        }
+
+        #instructions li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        #instructions .highlight {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #808080;
+        }
+        
+        .circle-center {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background-color: red;
+            border-radius: 50%;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header bar with logos outside the game frame -->
+    <div id="header-bar">
+        <div id="logo-left">
+            <img class="logo-img" src="Logo - AimSync.png" alt="AimSync Logo">
+            <div id="tagline">FindFast_FireFlawless</div>
+        </div>
+        <div id="logo-right">
+            <img class="logo-img" src="Logo - FiouriT.png" alt="FiouriT Logo">
+        </div>
+    </div>
+
+    <div id="game-container">
+        <div id="level-display">Level: 1</div>
+        <div id="timer-display"></div>
+        <div id="game-window">
+            <div id="circle-chain"></div>
+        </div>
+        <p id="feedback">Memorize the chain...</p>
+    </div>
+    
+    <!-- Improved instructions section -->
+    <div id="instructions">
+        <h2>AimSync</h2>
+        
+        <div class="section highlight">
+            <h3>CONCEPT</h3>
+            <p>AimSync is a precision-based game that tests your memory, reflexes, and spatial awareness. Every level presents a unique challenge that gets progressively more difficult.</p>
+        </div>
+        
+        <div class="section">
+            <h3>OBJECTIVE</h3>
+            <p>Break the chain by targeting the correct circle that mirrors the active circle's position from the opposite end. Accuracy and speed are essential to progress through all 50 levels.</p>
+        </div>
+        
+        <div class="section">
+            <h3>GAMEPLAY</h3>
+            <ul>
+                <li><strong>Memorization Phase:</strong> When each level begins, study the chain of circles carefully. Their positions are crucial for targeting.</li>
+                <li><strong>Active Circle:</strong> After the memorization phase, one circle will turn gray (active) every 3 seconds.</li>
+                <li><strong>Target Selection:</strong> You must click the circle that mirrors the active circle's position from the opposite end of the chain.</li>
+                <li><strong>Example:</strong> In a 10-circle chain, if the 3rd circle from the left is active, you need to click the 3rd circle from the right.</li>
+                <li><strong>Time Limit:</strong> You have exactly 3 seconds to make each shot before the active circle changes.</li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h3>PROGRESSION</h3>
+            <ul>
+                <li><strong>50 Level Challenge:</strong> The game features 50 increasingly challenging levels.</li>
+                <li><strong>Chain Length:</strong> Starting with 10 circles, each level adds 2 more circles to the chain.</li>
+                <li><strong>Circle Size:</strong> As you progress, circles become smaller and more difficult to target.</li>
+                <li><strong>Memorization Time:</strong> The time allowed to memorize the chain pattern decreases slightly with each level.</li>
+                <li><strong>Difficulty Curve:</strong> The pattern complexity increases, requiring better spatial awareness and faster reactions.</li>
+            </ul>
+        </div>
+        
+        <div class="section highlight">
+            <h3>MASTER STRATEGIES</h3>
+            <ul>
+                <li><strong>Count Systematically:</strong> Develop a consistent counting method from both ends to quickly identify mirror positions.</li>
+                <li><strong>Pattern Recognition:</strong> Train your mind to instantly recognize the relationship between active circles and their targets.</li>
+                <li><strong>Anticipate Changes:</strong> Try to predict which circle might become active next to reduce reaction time.</li>
+                <li><strong>Stay Focused:</strong> Maintain concentration throughout the entire level—even a single missed shot means restarting the level.</li>
+                <li><strong>Practice Precision:</strong> As circles get smaller in higher levels, cursor control becomes crucial.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const gameWindow = document.getElementById("game-window");
+        const chainContainer = document.getElementById("circle-chain");
+        const feedback = document.getElementById("feedback");
+        const levelDisplay = document.getElementById("level-display");
+        const timerDisplay = document.getElementById("timer-display");
+
+        const totalLevels = 50;
+        let currentLevel = 1;
+        let chainLength = 10;
+        let circles = [];
+        let circlePositions = [];
+        let activeIndex = -1;
+        let gameTimeout;
+        let colorInterval;
+        let timerInterval;
+        let timeRemaining;
+        let debugMode = false;
+        let gameActive = false;
+        let isFirstActivation = true;
+
+        function createChain() {
+            chainContainer.innerHTML = "";
+            circles = [];
+            circlePositions = [];
+            chainLength = 10 + (currentLevel - 1) * 2;
+            const startingMinSize = 30;
+            const sizeReduction = Math.min(15, Math.floor(currentLevel * 0.4));
+            const minSize = Math.max(12, startingMinSize - sizeReduction);
+            const sizeVariation = Math.min(15, 5 + Math.floor(currentLevel * 0.2));
+            const maxSize = minSize + sizeVariation;
+            const centerX = 400;
+            const centerY = 300;
+            const padding = maxSize;
+            const bounds = {
+                minX: padding,
+                maxX: 800 - padding,
+                minY: padding,
+                maxY: 600 - padding
+            };
+
+            // Create first circle
+            const firstCircleSize = minSize + Math.random() * (maxSize - minSize);
+            const firstCircle = createCircleElement(0, firstCircleSize, centerX, centerY);
+            chainContainer.appendChild(firstCircle);
+            circles.push(firstCircle);
+            circlePositions.push({ x: centerX, y: centerY, radius: firstCircleSize / 2 });
+
+            // Initialize chain building variables
+            let currentAngle = Math.random() * Math.PI * 2;
+            let lastX = centerX;
+            let lastY = centerY;
+            let lastRadius = firstCircleSize / 2;
+
+            // For failed placements - we'll retry with more flexible parameters
+            let globalRetryCount = 0;
+            const maxGlobalRetries = 3;
+
+            // Build the chain one circle at a time
+            for (let i = 1; i < chainLength; i++) {
+                let size = minSize + Math.random() * (maxSize - minSize);
+                const radius = size / 2;
+                let placed = false;
+                let attempts = 0;
+                let maxAttempts = 150; // Increased maximum attempts
+
+                // Try to place current circle
+                while (!placed && attempts < maxAttempts) {
+                    // Dynamically adjust angle variation based on attempts
+                    let angleVariation = Math.PI / 8;
+                    if (attempts > 20) angleVariation = Math.PI / 4;
+                    if (attempts > 50) angleVariation = Math.PI / 2;
+                    if (attempts > 100) angleVariation = Math.PI; // Allow full circle search
+
+                    // Calculate position at slightly varied angle
+                    const angleOffset = (Math.random() * 2 - 1) * angleVariation;
+                    const tryAngle = currentAngle + angleOffset;
+                    
+                    // Exact tangent distance (no overlap, no gap)
+                    const tangentDistance = lastRadius + radius;
+                    
+                    // Calculate new position
+                    const newX = lastX + Math.cos(tryAngle) * tangentDistance;
+                    const newY = lastY + Math.sin(tryAngle) * tangentDistance;
+
+                    // Check if within bounds
+                    if (newX - radius < bounds.minX || newX + radius > bounds.maxX || 
+                        newY - radius < bounds.minY || newY + radius > bounds.maxY) {
+                        attempts++;
+                        continue;
+                    }
+
+                    // Check for overlaps with ALL previous circles
+                    let hasOverlap = false;
+                    for (let j = 0; j < circlePositions.length; j++) {
+                        if (j === i - 1) continue; // Skip the direct parent circle
+                        const pos = circlePositions[j];
+                        const dx = newX - pos.x;
+                        const dy = newY - pos.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        // Strict non-overlap check with small buffer
+                        if (distance < pos.radius + radius + 2) {
+                            hasOverlap = true;
+                            break;
+                        }
+                    }
+
+                    // If no overlap, place the circle
+                    if (!hasOverlap) {
+                        const circle = createCircleElement(i, size, newX, newY);
+                        chainContainer.appendChild(circle);
+                        circles.push(circle);
+                        circlePositions.push({ x: newX, y: newY, radius: radius });
+                        lastX = newX;
+                        lastY = newY;
+                        lastRadius = radius;
+                        currentAngle = tryAngle;
+                        placed = true;
+                        
+                        if (debugMode) {
+                            const centerMark = document.createElement("div");
+                            centerMark.classList.add("circle-center");
+                            centerMark.style.left = `${newX - 2}px`;
+                            centerMark.style.top = `${newY - 2}px`;
+                            chainContainer.appendChild(centerMark);
+                        }
+                    } else {
+                        attempts++;
+                    }
+                }
+
+                // If we couldn't place the circle after all attempts
+                if (!placed) {
+                    globalRetryCount++;
+                    
+                    // If we've tried multiple times, adjust strategy
+                    if (globalRetryCount <= maxGlobalRetries) {
+                        // Try again with smaller circle
+                        i--; // Redo this circle
+                        size = minSize; // Use minimum size
+                        console.log(`Retry ${globalRetryCount}: Reducing circle size for position ${i}`);
+                    } else {
+                        // Last resort: place circle with guaranteed no overlap
+                        console.log(`Fallback placement for circle at position ${i}`);
+                        
+                        // Change direction dramatically
+                        currentAngle += Math.PI + (Math.random() * Math.PI/2 - Math.PI/4);
+                        
+                        // Place at exact tangent distance
+                        const tangentDistance = lastRadius + radius + 2; // Added buffer
+                        let newX = lastX + Math.cos(currentAngle) * tangentDistance;
+                        let newY = lastY + Math.sin(currentAngle) * tangentDistance;
+                        
+                        // Ensure within bounds
+                        newX = Math.max(bounds.minX + radius, Math.min(bounds.maxX - radius, newX));
+                        newY = Math.max(bounds.minY + radius, Math.min(bounds.maxY - radius, newY));
+                        
+                        // Try a few positions if there's still overlap
+                        for (let attempt = 0; attempt < 8; attempt++) {
+                            let hasOverlap = false;
+                            for (let j = 0; j < circlePositions.length; j++) {
+                                if (j === i - 1) continue;
+                                const pos = circlePositions[j];
+                                const dx = newX - pos.x;
+                                const dy = newY - pos.y;
+                                const distance = Math.sqrt(dx * dx + dy * dy);
+                                
+                                if (distance < pos.radius + radius + 2) {
+                                    hasOverlap = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (!hasOverlap) break;
+                            
+                            // Try another angle
+                            currentAngle += Math.PI/4;
+                            newX = lastX + Math.cos(currentAngle) * tangentDistance;
+                            newY = lastY + Math.sin(currentAngle) * tangentDistance;
+                            newX = Math.max(bounds.minX + radius, Math.min(bounds.maxX - radius, newX));
+                            newY = Math.max(bounds.minY + radius, Math.min(bounds.maxY - radius, newY));
+                        }
+                        
+                        const circle = createCircleElement(i, size, newX, newY);
+                        chainContainer.appendChild(circle);
+                        circles.push(circle);
+                        circlePositions.push({ x: newX, y: newY, radius: radius });
+                        lastX = newX;
+                        lastY = newY;
+                        lastRadius = radius;
+                        
+                        // Reset global retry count
+                        globalRetryCount = 0;
+                    }
+                } else {
+                    // Successfully placed - reset global retry count
+                    globalRetryCount = 0;
+                }
+            }
+            console.log("Chain created with indices:", circles.map(c => c.dataset.index));
+        }
+        
+        function createCircleElement(index, size, x, y) {
+            const circle = document.createElement("div");
+            circle.classList.add("circle");
+            circle.style.width = `${size}px`;
+            circle.style.height = `${size}px`;
+            circle.style.left = `${x - size/2}px`;
+            circle.style.top = `${y - size/2}px`;
+            circle.dataset.index = index;
+            circle.addEventListener("click", () => handleShot(index));
+            return circle;
+        }
+        
+        function activateCircle() {
+            if (activeIndex !== -1) {
+                circles[activeIndex].classList.remove("active");
+            }
+            
+            // For the first activation in a level, only activate circles in the middle half
+            if (isFirstActivation) {
+                // Calculate the boundaries of the middle half (25% from each end)
+                const lowerBound = Math.floor(chainLength * 0.25);  
+                const upperBound = Math.floor(chainLength * 0.75) - 1;
+                
+                // Generate a random index within the middle half
+                activeIndex = lowerBound + Math.floor(Math.random() * (upperBound - lowerBound + 1));
+                isFirstActivation = false;
+                console.log(`First activation: Using restricted range ${lowerBound}-${upperBound}, selected ${activeIndex}`);
+            } else {
+                // For subsequent activations, use the full range
+                activeIndex = Math.floor(Math.random() * chainLength);
+            }
+            
+            circles[activeIndex].classList.add("active");
+            feedback.textContent = "Shoot the target!";
+            startShotTimer();
+            console.log(`Activated circle at index ${activeIndex}, chain length ${chainLength}`);
+        }
+        
+        function getTargetIndex() {
+            const distanceFromFirstEnd = activeIndex;
+            const targetIndex = chainLength - 1 - distanceFromFirstEnd;
+            console.log(`Target index calculated: ${targetIndex} (from activeIndex ${activeIndex})`);
+            return targetIndex;
+        }
+        
+        function handleShot(index) {
+            if (!gameActive) return;
+            clearAllTimers();
+            gameActive = false;
+            timerDisplay.textContent = "";
+            const targetIndex = getTargetIndex();
+            console.log(`Clicked index: ${index}, Target index: ${targetIndex}`);
+            const shotCircle = circles[index];
+            const clickedIndex = parseInt(shotCircle.dataset.index);
+            shotCircle.classList.add("broken");
+            setTimeout(() => {
+                if (clickedIndex === targetIndex) {
+                    feedback.textContent = `You won Level ${currentLevel}!`;
+                    feedback.style.color = "#808080";
+                    setTimeout(() => {
+                        if (currentLevel < totalLevels) {
+                            currentLevel++;
+                            startLevel();
+                        } else {
+                            feedback.textContent = "Congratulations! You completed all 50 levels!";
+                            feedback.style.color = "#808080";
+                        }
+                    }, 1000);
+                } else {
+                    feedback.textContent = "Not exactly! Try this level again.";
+                    feedback.style.color = "#4a4a4a";
+                    setTimeout(startLevel, 1000);
+                }
+            }, 500);
+        }
+        
+        function clearAllTimers() {
+            clearTimeout(gameTimeout);
+            clearInterval(colorInterval);
+            clearInterval(timerInterval);
+            const highestTimeoutId = setTimeout(() => {}, 0);
+            for (let i = 0; i < highestTimeoutId; i++) {
+                clearTimeout(i);
+            }
+        }
+        
+        function startShotTimer() {
+            const timeLimit = 3000;
+            timeRemaining = timeLimit;
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                timeRemaining -= 100;
+                updateTimerDisplay();
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                }
+            }, 100);
+            gameTimeout = setTimeout(() => {
+                clearInterval(timerInterval);
+                gameActive = false;
+                timerDisplay.textContent = "";
+                feedback.textContent = "Too slow! Try this level again.";
+                feedback.style.color = "#4a4a4a";
+                setTimeout(startLevel, 1000);
+            }, timeLimit);
+        }
+        
+        function updateTimerDisplay() {
+            const seconds = (timeRemaining / 1000).toFixed(1);
+            timerDisplay.textContent = `Time: ${seconds}s`;
+            if (timeRemaining < 1000) {
+                timerDisplay.style.color = "#e74c3c";
+            } else if (timeRemaining < 2000) {
+                timerDisplay.style.color = "#e67e22";
+            } else {
+                timerDisplay.style.color = "#808080";
+            }
+        }
+        
+        function startLevel() {
+            clearAllTimers();
+            levelDisplay.textContent = `Level: ${currentLevel}`;
+            feedback.textContent = "Memorize the chain...";
+            feedback.style.color = "#4a4a4a";
+            timerDisplay.textContent = "";
+            isFirstActivation = true; // Reset the first activation flag for the new level
+            createChain();
+            const memorizeTime = Math.max(1000, 2000 - Math.floor(currentLevel * 20));
+            gameTimeout = setTimeout(() => {
+                gameActive = true;
+                activateCircle();
+                colorInterval = setInterval(() => {
+                    if (gameActive) {
+                        activateCircle();
+                    }
+                }, 3000);
+            }, memorizeTime);
+        }
+        
+        window.onload = startLevel;
+    </script>
+</body>
+</html>
